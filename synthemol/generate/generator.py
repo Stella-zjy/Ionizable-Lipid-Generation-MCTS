@@ -9,8 +9,10 @@ from tqdm import trange
 
 from synthemol.constants import OPTIMIZATION_TYPES
 from synthemol.generate.node import Node
-from synthemol.reactions import Reaction
+from synthemol.reactions.reaction import Reaction
 from synthemol.utils import random_choice
+
+import json
 
 
 class Generator:
@@ -29,7 +31,8 @@ class Generator:
             no_building_block_diversity: bool,
             store_nodes: bool,
             verbose: bool,
-            replicate: bool = False
+            replicate: bool = False,
+            head_num: int = 0
     ) -> None:
         """Creates the Generator.
 
@@ -61,6 +64,7 @@ class Generator:
         self.building_block_diversity = not no_building_block_diversity
         self.store_nodes = store_nodes
         self.verbose = verbose
+        self.head_num = head_num
 
         # Get all building blocks that are used in at least one reaction
         if replicate:
@@ -71,11 +75,15 @@ class Generator:
                 for building_block in reactant.allowed_building_blocks
             ))
         else:
-            self.all_building_blocks = sorted(
-                building_block
-                for building_block in self.building_block_smiles_to_id
-                if any(reactant.has_match(building_block) for reaction in reactions for reactant in reaction.reactants)
-            )
+            # self.all_building_blocks = sorted(
+            #     building_block
+            #     for building_block in self.building_block_smiles_to_id
+            #     if any(reactant.has_match(building_block) for reaction in reactions for reactant in reaction.reactants)
+            # )
+            # with open('all_building_blocks.json', 'r') as file:
+            #     self.all_building_blocks = sorted(json.load(file))
+            with open('all_building_blocks_head.json', 'r') as file:
+                self.all_building_blocks_head = sorted(json.load(file))
 
         # Get the function to use for optimization
         if self.optimization == 'maximize':
@@ -100,6 +108,23 @@ class Generator:
         self.node_map: dict[Node, Node] = {self.root: self.root}
         self.building_block_counts = Counter()
         self.node_to_children: dict[Node, list[Node]] = {}
+    
+
+    def tail_building_blocks_check(self, available_building_blocks):
+        # Initialize a new list for storing valid blocks
+        new_building_blocks = []
+
+        # Iterate over each element in the input list
+        for element in available_building_blocks:
+            # Check if the element is in the dictionary and its corresponding ID is greater than 15500
+            if self.building_block_smiles_to_id[element] > self.head_num:
+                # If the condition is met, add it to the new list
+                new_building_blocks.append(element)
+
+        # Return the list of SMILES strings that meet the criterion
+        return new_building_blocks
+
+
 
     def get_next_building_blocks(self, molecules: tuple[str]) -> list[str]:
         """Get the next building blocks that can be added to the given molecules.
@@ -138,7 +163,11 @@ class Generator:
         # Remove duplicates but maintain order for reproducibility
         available_building_blocks = list(dict.fromkeys(available_building_blocks))
 
+        # Only add tail building blocks to next available building blocks
+        available_building_blocks = self.tail_building_blocks_check(available_building_blocks)
+
         return available_building_blocks
+
 
     def get_reactions_for_molecules(self, molecules: tuple[str]) -> list[tuple[Reaction, dict[str, int]]]:
         """Get all reactions that can be run on the given molecules.
@@ -238,7 +267,8 @@ class Generator:
 
         # Add all possible next building blocks to the current molecules in the Node
         if node.num_molecules == 0:
-            next_building_blocks = self.all_building_blocks
+            # next_building_blocks = self.all_building_blocks
+            next_building_blocks = self.all_building_blocks_head
         else:
             next_building_blocks = self.get_next_building_blocks(molecules=node.molecules)
 

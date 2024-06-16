@@ -23,7 +23,8 @@ def set_all_building_blocks(
 
 def load_and_set_allowed_reaction_building_blocks(
         reactions: tuple[Reaction],
-        reaction_to_reactant_to_building_blocks_path: Path
+        reaction_to_reactant_to_building_blocks_path: Path,
+        building_block_id_to_smiles
 ) -> None:
     """Loads a mapping of allowed building blocks for each reaction and sets the allowed SMILES for each reaction.
 
@@ -38,4 +39,5 @@ def load_and_set_allowed_reaction_building_blocks(
     # Set allowed building blocks for each reaction
     for reaction in reactions:
         for reactant_index, reactant in enumerate(reaction.reactants):
-            reactant.allowed_building_blocks = reaction_to_reactant_to_building_blocks[reaction.id][reactant_index]
+            # reactant.allowed_building_blocks = [building_block_id_to_smiles[k] for k in reaction_to_reactant_to_building_blocks[reaction.id][reactant_index] if k in building_block_id_to_smiles]
+            reactant.allowed_building_blocks = reaction_to_reactant_to_building_blocks[reaction.id][reactant_index]         

@@ -2,6 +2,17 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+import sys
+import os
+
+# Adds the project root directory to sys.path
+current_dir = os.path.dirname(__file__)  # Directory of the script
+parent_dir = os.path.dirname(current_dir)  # Parent directory ('some_subfolder')
+grandparent_dir = os.path.dirname(parent_dir)  # Grandparent directory ('synthemol')
+
+# Add the grandparent directory (above 'synthemol') to sys.path
+sys.path.insert(0, os.path.abspath(grandparent_dir))
+
 from synthemol.reactions.query_mol import QueryMol
 from synthemol.utils import convert_to_mol, MOLECULE_TYPE
 
@@ -35,6 +46,7 @@ class Reaction:
         :param smiles: The SMILES to match.
         :return: A list of indices of the reactants that match the provided SMILES.
         """
+        # print(smiles)
         return [
             reactant_index
             for reactant_index, reactant in enumerate(self.reactants)

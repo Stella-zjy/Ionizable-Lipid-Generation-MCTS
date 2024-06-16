@@ -5,6 +5,18 @@ from pathlib import Path
 import pandas as pd
 from tap import tapify
 
+import sys
+import os
+
+# Adds the project root directory to sys.path
+current_dir = os.path.dirname(__file__)  # Directory of the script
+parent_dir = os.path.dirname(current_dir)  # Parent directory ('some_subfolder')
+grandparent_dir = os.path.dirname(parent_dir)  # Grandparent directory ('synthemol')
+
+# Add the grandparent directory (above 'synthemol') to sys.path
+sys.path.insert(0, os.path.abspath(grandparent_dir))
+
+
 from synthemol.constants import (
     BUILDING_BLOCKS_PATH,
     FINGERPRINT_TYPES,
@@ -15,12 +27,16 @@ from synthemol.constants import (
     SCORE_COL,
     SMILES_COL
 )
-from synthemol.reactions import (
-    Reaction,
-    REACTIONS,
-    load_and_set_allowed_reaction_building_blocks,
-    set_all_building_blocks
-)
+# from synthemol.reactions import (
+#     Reaction,
+#     REACTIONS,
+#     load_and_set_allowed_reaction_building_blocks,
+#     set_all_building_blocks
+# )
+from synthemol.reactions.reaction import Reaction
+from synthemol.reactions.real import REAL_REACTIONS
+from synthemol.reactions.utils import load_and_set_allowed_reaction_building_blocks, set_all_building_blocks
+
 from synthemol.generate.generator import Generator
 from synthemol.generate.utils import create_model_scoring_fn, save_generated_molecules
 
@@ -33,19 +49,20 @@ def generate(
         fingerprint_type: FINGERPRINT_TYPES | None = None,
         reaction_to_building_blocks_path: Path | None = REACTION_TO_BUILDING_BLOCKS_PATH,
         building_blocks_id_column: str = REAL_BUILDING_BLOCK_ID_COL,
-        building_blocks_score_column: str = SCORE_COL,
+        building_blocks_score_column: str | None = None,
         building_blocks_smiles_column: str = SMILES_COL,
-        reactions: tuple[Reaction] = REACTIONS,
+        reactions: tuple[Reaction] = REAL_REACTIONS,
         max_reactions: int = 1,
         n_rollout: int = 10,
         explore_weight: float = 10.0,
         num_expand_nodes: int | None = None,
         optimization: OPTIMIZATION_TYPES = 'maximize',
-        rng_seed: int = 0,
+        rng_seed: int = 22,
         no_building_block_diversity: bool = False,
         store_nodes: bool = False,
         verbose: bool = False,
-        replicate: bool = False
+        replicate: bool = False,
+        head_num: int = 0
 ) -> None:
     """Generate molecules combinatorially using a Monte Carlo tree search guided by a molecular property predictor.
 
@@ -110,10 +127,14 @@ def generate(
         building_block_data[building_blocks_id_column],
         building_block_data[building_blocks_smiles_column]
     ))
-    building_block_smiles_to_score = dict(zip(
-        building_block_data[building_blocks_smiles_column],
-        building_block_data[building_blocks_score_column]
-    ))
+
+    if building_blocks_score_column is not None:
+        building_block_smiles_to_score = dict(zip(
+            building_block_data[building_blocks_smiles_column],
+            building_block_data[building_blocks_score_column]
+        ))
+    else:
+        building_block_smiles_to_score = None
 
     print(f'Found {len(building_block_smiles_to_id):,} unique building blocks')
 
@@ -128,7 +149,8 @@ def generate(
         print('Loading and setting allowed building blocks for each reaction...')
         load_and_set_allowed_reaction_building_blocks(
             reactions=reactions,
-            reaction_to_reactant_to_building_blocks_path=reaction_to_building_blocks_path
+            reaction_to_reactant_to_building_blocks_path=reaction_to_building_blocks_path,
+            building_block_id_to_smiles = building_block_id_to_smiles
         )
 
     # Define model scoring function
@@ -154,7 +176,8 @@ def generate(
         no_building_block_diversity=no_building_block_diversity,
         store_nodes=store_nodes,
         verbose=verbose,
-        replicate=replicate
+        replicate=replicate,
+        head_num = head_num
     )
 
     # Search for molecules
@@ -188,6 +211,41 @@ def generate(
     )
 
 
-def generate_command_line() -> None:
-    """Run generate function from command line."""
-    tapify(generate)
+# def generate_command_line() -> None:
+#     """Run generate function from command line."""
+#     tapify(generate)
+
+
+if __name__ == '__main__':
+    # ============= Running the cLogP experiment =============
+    # model_path = Path('data/Models/clogp_chemprop_30_epochs')
+    # model_type = 'chemprop'
+    # building_blocks_path = 'data/Models/clogp_chemprop_30_epochs/building_blocks.csv'
+    # building_blocks_score_column = 'chemprop_ensemble_preds'
+    # building_blocks_id_column = 'Reagent_ID'
+    # reaction_to_building_blocks_path = 'data/Data/4_real_space/reaction_to_building_blocks.pkl'
+    # save_dir = Path('data/Data/5_generations_clogp/clogp_chemprop_30_epochs')
+    # reactions = REAL_REACTIONS
+    # max_reactions = 1
+    # n_rollout = 200
+    # generate(model_path = model_path, model_type = model_type, building_blocks_path = building_blocks_path, building_blocks_score_column = building_blocks_score_column, 
+    # building_blocks_id_column = building_blocks_id_column, reaction_to_building_blocks_path = reaction_to_building_blocks_path,
+    # save_dir = save_dir, reactions = reactions, max_reactions = max_reactions, n_rollout = n_rollout)
+
+    # ============= Custom MCTS for Lipid Generation =============
+    model_path = Path('data/Models/lipid_classifier_chemprop_1_epochs')
+    model_type = 'chemprop'
+    building_blocks_path = 'data/Data/RawLipid/lipid_building_blocks_with_preds.csv'
+    building_blocks_score_column = 'chemprop_morgan_model_0_preds'
+    building_blocks_id_column = 'ID'
+    reaction_to_building_blocks_path = 'data/Data/RawLipid/reaction_to_lipid_building_blocks.pkl'
+    reactions = REAL_REACTIONS
+    max_reactions = 2
+    n_rollout = 2000
+    num_expand_nodes = 1000
+    save_dir = Path(f'data/Data/6_generations_lipid/max_reactions_{max_reactions}_num_expand_nodes_{num_expand_nodes}')
+    head_num = 2752482
+
+    generate(model_path = model_path, model_type = model_type, building_blocks_path = building_blocks_path, building_blocks_score_column = building_blocks_score_column, 
+    building_blocks_id_column = building_blocks_id_column, reaction_to_building_blocks_path = reaction_to_building_blocks_path,
+    save_dir = save_dir, reactions = reactions, max_reactions = max_reactions, n_rollout = n_rollout, num_expand_nodes = num_expand_nodes, head_num = head_num)

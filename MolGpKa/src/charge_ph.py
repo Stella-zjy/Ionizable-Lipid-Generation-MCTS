@@ -12,13 +12,16 @@ import numpy as np
 import pandas as pd
 
 import torch
-from utils.ionization_group import get_ionization_aid
-from utils.descriptor import mol2vec
-from utils.net import GCNNet
+
+# from utils.ionization_group import get_ionization_aid
+# from utils.descriptor import mol2vec
+# from utils.net import GCNNet
+from MolGpKa.src.utils.ionization_group import get_ionization_aid
+from MolGpKa.src.utils.descriptor import mol2vec
+from MolGpKa.src.utils.net import GCNNet
 
 import matplotlib.pyplot as plt
-import random
-import time
+
 
 root = osp.abspath(osp.dirname(__file__))
 
@@ -104,43 +107,6 @@ def charge_ph_plot(mol, model_acid, model_base, fig_path, step_size = 1):
     plt.savefig(fig_path)
 
 
-# Conduct ionizability filtering for all SMILES strings in the input file, results can be written into an output file
-def ionizability_filter(input_file_path, output_file_path, model_acid, model_base, save_file = True):
-    total_rows = 2752482
-    n_samples = 1000
-    skip_rows = set(random.sample(range(1, total_rows), total_rows - n_samples)) 
-
-    df = pd.read_csv(input_file_path, skiprows=lambda x: x in skip_rows)
-
-    start_time = time.time()
-
-    sample_smiles = df['smiles'].tolist()
-    
-    filtered_list = []
-    non_selected_list = []
-
-    for smi in sample_smiles:
-        mol = Chem.MolFromSmiles(smi)
-        if calculate_net_charge(mol, model_acid, model_base, 5) < 0.1:
-            non_selected_list.append(smi)
-            continue
-        if calculate_net_charge(mol, model_acid, model_base, 7.4) < 0:
-            non_selected_list.append(smi)
-            continue
-        filtered_list.append(smi)
-
-    end_time = time.time()
-
-    print(len(filtered_list))
-    print('Runtime', end_time - start_time)
-
-    if save_file:
-        df_out = pd.DataFrame(filtered_list, columns=['smiles'])
-        df_out.to_csv(output_file_path, index=False)
-
-    return filtered_list, non_selected_list
-
-
 # Conduct ionizability binary classification for the given single molecule, output 1 for ionizable and 0 for non-ionizable
 def ionizability_classifier_single_molecule(smiles, model_acid, model_base):
     mol = Chem.MolFromSmiles(smiles)
@@ -149,35 +115,3 @@ def ionizability_classifier_single_molecule(smiles, model_acid, model_base):
     if calculate_net_charge(mol, model_acid, model_base, 7.4) < 0:
         return 0
     return 1
-
-
-
-if __name__ == "__main__":
-    # ==================== Ionizable Head Filtering  ====================
-    input_file_path = '/scratch/jz610/GitHub/SyntheMol-Lipid/data/Data/RawLipid/heads.csv'
-    output_file_path = '/scratch/jz610/GitHub/SyntheMol-Lipid/data/Data/RawLipid/charge_filtered_heads.csv'
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_base = load_model(osp.join(root, "../models/weight_base.pth"), device)
-    model_acid = load_model(osp.join(root, "../models/weight_acid.pth"), device)
-
-    filtered_list, non_selected_list = ionizability_filter(input_file_path, output_file_path, model_acid, model_base, False)
-
-    # n = 10
-    # selected_sample = random.sample(filtered_list, n)
-    # non_selected_sample = random.sample(non_selected_list, n)
-
-    # print('Ionizable molecules')
-    # for i in range(n):
-    #     print(i, selected_sample[i])
-    #     fig_path = f'../charge_pH_plots/ionizable_sample_{i}.png'
-    #     mol = Chem.MolFromSmiles(selected_sample[i])
-    #     charge_ph_plot(mol, model_acid, model_base, fig_path)
-    
-    # print('\n')
-    # print('Non-Ionizable molecules')
-    # for i in range(n):
-    #     print(i, non_selected_sample[i])
-    #     fig_path = f'../charge_pH_plots/non_ionizable_sample_{i}.png'
-    #     mol = Chem.MolFromSmiles(non_selected_sample[i])
-    #     charge_ph_plot(mol, model_acid, model_base, fig_path)

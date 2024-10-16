@@ -39,9 +39,10 @@ class Node:
         self.N = 0  # The number of times this Node has been expanded.
         self.rollout_num = rollout_num
         self.num_children = 0
+        self.ionizability_score = 0
 
-    @classmethod
-    def compute_score(cls, molecules: tuple[str], scoring_fn: Callable[[str], float]) -> float:
+    # @classmethod
+    def compute_score(self, molecules: tuple[str], scoring_fn: Callable[[str], list[float]]):
         """Computes the score of the molecules.
 
         :param molecules: A tuple of SMILES. The first element is the currently constructed molecule
@@ -49,12 +50,30 @@ class Node:
         :param scoring_fn: A function that takes as input a SMILES representing a molecule and returns a score.
         :return: The score of the molecules.
         """
-        return sum(scoring_fn(molecule) for molecule in molecules) / len(molecules) if len(molecules) > 0 else 0.0
+        total_score = 0.0
+        ionizability_score = 0.0
+
+        for molecule in molecules:
+            scores = scoring_fn(molecule)
+            total_score += scores[0]
+            if len(scores) == 2:
+                ionizability_score += scores[1]
+
+        total_score = total_score / len(molecules) if len(molecules) > 0 else 0.0
+        ionizability_score = ionizability_score / len(molecules) if len(molecules) > 0 else 0.0
+        
+        self.ionizability_score = ionizability_score
+
+        return total_score, ionizability_score
 
     @cached_property
     def P(self) -> float:
         """The property score of this Node. (Note: The value is cached, so it assumes the Node is immutable.)"""
-        return self.compute_score(molecules=self.molecules, scoring_fn=self.scoring_fn)
+        total_score, ionizability_score = self.compute_score(molecules=self.molecules, scoring_fn=self.scoring_fn)
+        return total_score
+    
+    # def Ionizability_score(self) -> float:
+    #     return self.ionizability_score
 
     def Q(self) -> float:
         """Value that encourages exploitation of Nodes with high reward."""

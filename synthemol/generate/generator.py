@@ -31,7 +31,7 @@ class Generator:
             no_building_block_diversity: bool,
             store_nodes: bool,
             verbose: bool,
-            replicate: bool = False,
+            # replicate: bool = False,
             head_num: int = 0
     ) -> None:
         """Creates the Generator.
@@ -66,23 +66,7 @@ class Generator:
         self.verbose = verbose
         self.head_num = head_num
 
-        # Get all building blocks that are used in at least one reaction
-        if replicate:
-            self.all_building_blocks = list(dict.fromkeys(
-                building_block
-                for reaction in self.reactions
-                for reactant in reaction.reactants
-                for building_block in reactant.allowed_building_blocks
-            ))
-        else:
-            # self.all_building_blocks = sorted(
-            #     building_block
-            #     for building_block in self.building_block_smiles_to_id
-            #     if any(reactant.has_match(building_block) for reaction in reactions for reactant in reaction.reactants)
-            # )
-            # with open('all_building_blocks.json', 'r') as file:
-            #     self.all_building_blocks = sorted(json.load(file))
-            with open('all_building_blocks_head.json', 'r') as file:
+        with open('all_building_blocks_head.json', 'r') as file:
                 self.all_building_blocks_head = sorted(json.load(file))
 
         # Get the function to use for optimization
@@ -267,10 +251,11 @@ class Generator:
 
         # Add all possible next building blocks to the current molecules in the Node
         if node.num_molecules == 0:
-            # next_building_blocks = self.all_building_blocks
             next_building_blocks = self.all_building_blocks_head
         else:
             next_building_blocks = self.get_next_building_blocks(molecules=node.molecules)
+
+        # print('len(next_building_blocks)',len(next_building_blocks))
 
         # Optionally, limit the number of next nodes
         if self.num_expand_nodes is not None and len(next_building_blocks) > self.num_expand_nodes:
@@ -306,6 +291,7 @@ class Generator:
         :param total_visit_count: The total number of visits to all nodes at the same level as this Node.
         :return: The MCTS score of the Node.
         """
+        return 0 
         # Compute initial MCTS score
         mcts_score = node.Q() + node.U(n=total_visit_count)
 

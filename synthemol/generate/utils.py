@@ -18,13 +18,20 @@ from synthemol.models import (
     sklearn_predict_on_molecule_ensemble
 )
 
+from MolGpKa.src.charge_ph import *
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+model_base = load_model("MolGpKa/models/weight_base.pth", device)
+model_acid = load_model("MolGpKa/models/weight_acid.pth", device)
+
 
 def create_model_scoring_fn(
         model_path: Path,
         model_type: MODEL_TYPES,
         fingerprint_type: FINGERPRINT_TYPES | None = None,
         smiles_to_score: dict[str, float] | None = None
-) -> Callable[[str], float]:
+):
     """Creates a function that scores a molecule using a model or ensemble of models.
 
     :param model_path: A path to a model or directory of models.
@@ -63,32 +70,25 @@ def create_model_scoring_fn(
                 fingerprint=fingerprint,
                 scalers=scalers
             )
-    else:
-        # Load scikit-learn models
-        models = [sklearn_load(model_path=model_path) for model_path in model_paths]
-
-        # Set up model scoring function for ensemble of scikit-learn models
-        def model_scorer(smiles: str, fingerprint: np.ndarray) -> float:
-            return sklearn_predict_on_molecule_ensemble(
-                models=models,
-                fingerprint=fingerprint
-            )
 
     # Build model scoring function using either chemprop or scikit-learn ensemble and precomputed building block scores
     @cache
-    def model_scoring_fn(smiles: str) -> float:
+    def model_scoring_fn(smiles: str) -> list[float]:
         if smiles_to_score is not None and smiles in smiles_to_score:
-            return smiles_to_score[smiles]
+            return [smiles_to_score[smiles]]
 
         if fingerprint_type is not None:
             fingerprint = compute_fingerprint(smiles, fingerprint_type=fingerprint_type)
         else:
             fingerprint = None
 
-        return model_scorer(
+        ionizability_score = ionizability_classifier_single_molecule(smiles, model_acid, model_base, device)
+        lipid_score = model_scorer(
             smiles=smiles,
             fingerprint=fingerprint
-        )
+        )  
+
+        return [lipid_score + ionizability_score, ionizability_score]
 
     return model_scoring_fn
 
@@ -133,7 +133,7 @@ def save_generated_molecules(
         construction_dicts.append(construction_dict)
 
     # Specify column order for CSV file
-    columns = ['smiles', 'node_id', 'num_expansions', 'rollout_num', 'score', 'Q_value', 'num_reactions']
+    columns = ['smiles', 'node_id', 'num_expansions', 'rollout_num', 'score', 'Ionizability', 'Q_value', 'num_reactions']
 
     for reaction_num in range(1, max_reaction_num + 1):
         columns.append(f'reaction_{reaction_num}_id')
@@ -152,6 +152,7 @@ def save_generated_molecules(
                 'num_expansions': node.N,
                 'rollout_num': node.rollout_num,
                 'score': node.P,
+                'Ionizability': node.ionizability_score,
                 'Q_value': node.Q(),
                 **construction_dict
             }

@@ -58,10 +58,10 @@ def generate(
         num_expand_nodes: int | None = None,
         optimization: OPTIMIZATION_TYPES = 'maximize',
         rng_seed: int = 22,
-        no_building_block_diversity: bool = False,
+        no_building_block_diversity: bool = True,
         store_nodes: bool = False,
         verbose: bool = False,
-        replicate: bool = False,
+        # replicate: bool = False,
         head_num: int = 0
 ) -> None:
     """Generate molecules combinatorially using a Monte Carlo tree search guided by a molecular property predictor.
@@ -96,21 +96,7 @@ def generate(
     # Load building blocks
     print('Loading building blocks...')
 
-    # Optionally alter building blocks loading to precisely replicate previous experiments
-    if replicate:
-        # Change score loading dtype to ensure numerical precision
-        building_block_data = pd.read_csv(building_blocks_path, dtype={building_blocks_score_column: str})
-        building_block_data[building_blocks_score_column] = building_block_data[building_blocks_score_column].astype(float)
-
-        # Reorder reactions
-        old_reactions_order = [275592, 22, 11, 527, 2430, 2708, 240690, 2230, 2718, 40, 1458, 271948, 27]
-        reactions = tuple(sorted(reactions, key=lambda reaction: old_reactions_order.index(reaction.id)))
-
-        # Deduplicate building blocks by SMILES
-        building_block_data.drop_duplicates(subset=building_blocks_smiles_column, inplace=True)
-    # Otherwise, load the building blocks normally
-    else:
-        building_block_data = pd.read_csv(building_blocks_path)
+    building_block_data = pd.read_csv(building_blocks_path)
 
     print(f'Loaded {len(building_block_data):,} building blocks')
 
@@ -176,7 +162,7 @@ def generate(
         no_building_block_diversity=no_building_block_diversity,
         store_nodes=store_nodes,
         verbose=verbose,
-        replicate=replicate,
+        # replicate=replicate,
         head_num = head_num
     )
 
@@ -210,6 +196,9 @@ def generate(
         save_path=save_dir / 'molecules.csv'
     )
 
+    print('Done!')
+    print(datetime.now())
+
 
 # def generate_command_line() -> None:
 #     """Run generate function from command line."""
@@ -217,35 +206,23 @@ def generate(
 
 
 if __name__ == '__main__':
-    # ============= Running the cLogP experiment =============
-    # model_path = Path('data/Models/clogp_chemprop_30_epochs')
-    # model_type = 'chemprop'
-    # building_blocks_path = 'data/Models/clogp_chemprop_30_epochs/building_blocks.csv'
-    # building_blocks_score_column = 'chemprop_ensemble_preds'
-    # building_blocks_id_column = 'Reagent_ID'
-    # reaction_to_building_blocks_path = 'data/Data/4_real_space/reaction_to_building_blocks.pkl'
-    # save_dir = Path('data/Data/5_generations_clogp/clogp_chemprop_30_epochs')
-    # reactions = REAL_REACTIONS
-    # max_reactions = 1
-    # n_rollout = 200
-    # generate(model_path = model_path, model_type = model_type, building_blocks_path = building_blocks_path, building_blocks_score_column = building_blocks_score_column, 
-    # building_blocks_id_column = building_blocks_id_column, reaction_to_building_blocks_path = reaction_to_building_blocks_path,
-    # save_dir = save_dir, reactions = reactions, max_reactions = max_reactions, n_rollout = n_rollout)
-
     # ============= Custom MCTS for Lipid Generation =============
     model_path = Path('data/Models/lipid_classifier_chemprop_1_epochs')
     model_type = 'chemprop'
-    building_blocks_path = 'data/Data/RawLipid/lipid_building_blocks_with_preds.csv'
-    building_blocks_score_column = 'chemprop_morgan_model_0_preds'
+    building_blocks_path = 'data/Data/RawLipid/lipid_building_blocks_unique.csv'
+    # building_blocks_score_column = 'chemprop_morgan_model_0_preds'
+    building_blocks_score_column = None
     building_blocks_id_column = 'ID'
-    reaction_to_building_blocks_path = 'data/Data/RawLipid/reaction_to_lipid_building_blocks.pkl'
+    reaction_to_building_blocks_path = 'data/Data/RawLipid/reaction_to_lipid_building_blocks_unique.pkl'
     reactions = REAL_REACTIONS
     max_reactions = 2
-    n_rollout = 2000
+    n_rollout = 5000
     num_expand_nodes = 1000
-    save_dir = Path(f'data/Data/6_generations_lipid/max_reactions_{max_reactions}_num_expand_nodes_{num_expand_nodes}')
+    save_dir = Path(f'data/Data/6_generations_lipid/nn_guided_num_expand_nodes_{num_expand_nodes}_rollout_{n_rollout}_test')
+
+    # To differentiate head ID and tail ID
     head_num = 2752482
 
     generate(model_path = model_path, model_type = model_type, building_blocks_path = building_blocks_path, building_blocks_score_column = building_blocks_score_column, 
     building_blocks_id_column = building_blocks_id_column, reaction_to_building_blocks_path = reaction_to_building_blocks_path,
-    save_dir = save_dir, reactions = reactions, max_reactions = max_reactions, n_rollout = n_rollout, num_expand_nodes = num_expand_nodes, head_num = head_num)
+    save_dir = save_dir, reactions = reactions, max_reactions = max_reactions, n_rollout = n_rollout, num_expand_nodes = num_expand_nodes, verbose = False, head_num = head_num)

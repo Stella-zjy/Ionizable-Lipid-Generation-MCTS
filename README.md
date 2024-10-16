@@ -29,9 +29,10 @@ pip install matplotlib
 pip install scipy tqdm
 pip install chemfunc==1.0.3
 pip install chemprop==1.6.1
+pip install typed-argument-parser==1.8.0
 ```
 
-For running the MolGpKa module on GPU(Cuda11.8), you may follow the instructions below:
+For running the MolGpKa module on a GPU (with CUDA 11.8), use the following:
 
 ```bash
 conda create --name molgpka-gpu python=3.10
@@ -43,3 +44,48 @@ pip install rdkit
 pip install py3Dmol
 pip install numpy pandas scikit-learn matplotlib
 ```
+
+### Instructions
+
+#### Building Block Dataset
+
+Building block dataset creation is a collaborative effort. The source code for this part can be viewed [here](https://github.com/yuxuanou623/Lipid_reaction_dataset_creation).
+
+#### Lipid Classifier
+
+We use a Chemprop-based model for lipid classification, utilizing the same training script from SyntheMol. To train the lipid classifier, run the following command:
+
+```bash
+python scripts/models/train.py \
+    --data_path data/chemprop_training_data.csv \
+    --save_dir data/Models/lipid_classifier_chemprop_1_epochs \
+    --dataset_type classification \
+    --model_type chemprop \
+    --property_column target \
+    --num_models 1 \
+    --epochs 1
+```
+
+#### Ionizability Predictor
+
+For pKa prediction, we utilize the `MolGpKa` module. The ionizability filtering criteria are implemented in the `MolGpKa/src/charge_ph.py` file. Specifically, the `ionizability_classifier_single_molecule()` function is used to evaluate generated molecules.
+
+#### Reaction Prediction
+
+We employ a template-based reaction prediction model, using the same reactions defined in SyntheMol. Reaction templates are located in the `synthemol/reactions/real.py` file. You can easily substitute these with custom reaction templates if needed.
+
+#### Baseline (SyntheMol)
+
+The SyntheMol approach for lipid generation can be experimented with by running the following script:
+```bash
+python synthemol/generate/generate.py
+```
+This script is adapted from the original source code provided by SyntheMol.
+
+#### Policy Network Guided MCTS
+
+The scripts for policy network-guided MCTS are located in the `synthemol/guided_mcts` directory. To experiment with the guided MCTS approach, run the following command:
+```bash
+python synthemol/guided_mcts/run.py
+```
+

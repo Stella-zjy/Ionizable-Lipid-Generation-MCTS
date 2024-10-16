@@ -1,7 +1,45 @@
 # Generative Model for Synthesizing Ionizable Lipids: A Monte Carlo Tree Search Approach
 
-## About the Project
 This project presents Monte Carlo Tree Search (MCTS)-based generative models designed to create novel ionizable lipids with synthetic feasibility and desirable biomedical properties. This research is based on my Master’s thesis: Generative Models for Synthesizable Lipids, supervised by Professor José Miguel Hernández-Lobato at the University of Cambridge.
 
 This project has been accepted to the NeurIPS 2024 AI for New Drug Modalities Workshop.
 
+## Credits
+
+This project builds upon previous works in the field of generative models and cheminformatics. I would like to acknowledge the following foundational research and tools that inspired and supported this project:
+
+- **MCTS for Molecular Design**: Our project builds upon the [SyntheMol](https://github.com/swansonk14/SyntheMol) project, which also serves as our baseline model.
+- **pKa Prediction**: We make use of the [MolGpKa](https://github.com/Xundrug/MolGpKa) module for pKa prediction, which serves as an important component in our ionizability predictor.
+
+## Getting Started
+### Prerequisites
+
+Ensure the following dependencies are installed:
+
+```bash
+conda create --name mcts-lipid python=3.10
+conda activate mcts-lipid
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install torch_geometric
+pip install torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
+pip install rdkit
+pip install py3Dmol
+pip install numpy pandas scikit-learn
+pip install matplotlib
+pip install scipy tqdm
+pip install chemfunc==1.0.3
+pip install chemprop==1.6.1
+```
+
+For running the MolGpKa module on GPU(Cuda11.8), you may follow the instructions below:
+
+```bash
+conda create --name molgpka-gpu python=3.10
+conda activate molgpka-gpu
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip install torch_geometric
+pip install torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.3.0+cu118.html
+pip install rdkit
+pip install py3Dmol
+pip install numpy pandas scikit-learn matplotlib
+```

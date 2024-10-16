@@ -24,7 +24,7 @@ def set_all_building_blocks(
 def load_and_set_allowed_reaction_building_blocks(
         reactions: tuple[Reaction],
         reaction_to_reactant_to_building_blocks_path: Path,
-        building_block_id_to_smiles
+        # building_block_id_to_smiles
 ) -> None:
     """Loads a mapping of allowed building blocks for each reaction and sets the allowed SMILES for each reaction.
 

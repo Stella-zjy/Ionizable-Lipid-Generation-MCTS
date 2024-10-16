@@ -4,15 +4,15 @@ from synthemol.reactions.reaction import Reaction
 
 
 REAL_REACTIONS = (
-    Reaction(
-        reactants=[
-            QueryMol('CC(C)(C)OC(=O)[N:1]([*:2])[*:3].[*:4][N:5]([H])[*:6]'),
-            QueryMol('[OH1][C:7]([*:8])=[O:9]'),
-            QueryMol('[OH1][C:10]([*:11])=[O:12]')
-        ],
-        product=QueryMol('[*:4][N:5]([*:6])[C:7](=[O:9])[*:8].[*:3][N:1]([*:2])[C:10](=[O:12])[*:11]'),
-        reaction_id=275592
-    ),
+    # Reaction(
+    #     reactants=[
+    #         QueryMol('CC(C)(C)OC(=O)[N:1]([*:2])[*:3].[*:4][N:5]([H])[*:6]'),
+    #         QueryMol('[OH1][C:7]([*:8])=[O:9]'),
+    #         QueryMol('[OH1][C:10]([*:11])=[O:12]')
+    #     ],
+    #     product=QueryMol('[*:4][N:5]([*:6])[C:7](=[O:9])[*:8].[*:3][N:1]([*:2])[C:10](=[O:12])[*:11]'),
+    #     reaction_id=275592
+    # ),
     Reaction(
         reactants=[
             QueryMol('[*:1][N:2]([H])[*:3]'),

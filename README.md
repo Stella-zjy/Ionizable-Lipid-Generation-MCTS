@@ -76,7 +76,7 @@ We employ a template-based reaction prediction model, using the same reactions d
 
 #### Baseline (SyntheMol)
 
-The SyntheMol approach for lipid generation can be experimented with by running the following script:
+The SyntheMol approach for lipid generation can be experimented by running the following script:
 ```bash
 python synthemol/generate/generate.py
 ```
